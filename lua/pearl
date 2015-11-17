@@ -7,7 +7,7 @@
 
 --[[LOCAL VARS]]
 
-local versionStr="1.1-beta"
+local versionStr="1.2-beta"
 local userAgent="EnderWeb/1.0 (Minecraft; ComputerCraft; Forge) Pearl/" .. versionStr
 
 local running = true
@@ -91,7 +91,7 @@ local function drawPictureTable(mon, xinit, yinit, width, image, align)
         end
         mon.write(" ")
       end
-    	end
+		end
 	end
   
   return height
