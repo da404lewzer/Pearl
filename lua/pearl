@@ -20,11 +20,15 @@
 local debugOutput = {} --outputs to an side monitor
 local debugSide = "right"
 
-local versionStr="1.2-beta"
-local userAgent="EnderWeb/1.0 (Minecraft; ComputerCraft; Forge) " .. string.gsub(os.version(), " ", "/") .. " Pearl/" .. versionStr
-
 local running = true
 local w,h = term.getSize()
+
+local versionStr="1.2-beta"
+local colorStr = "NoColor"
+if term.isColor() then
+  colorStr = "Color16"
+end
+local userAgent=string.format("EnderWeb/1.0 (Minecraft; ComputerCraft; Forge;) %s (%s; R:%dx%d) Pearl/%s", string.gsub(os.version(), " ", "/"), colorStr, w,h, versionStr)
 
 --[[LOCAL DEPENDENCIES]]
 
