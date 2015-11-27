@@ -7,6 +7,7 @@
  * Usage: After launching you load pages by typing in their six-digit number.
  * 
  * Changelog:
+ * + Added B/W Computer Support
  * + Added Image Background/Fill support
  * + Added Image Text Overlay support
  * + Added Animation Support
@@ -66,6 +67,34 @@ local function getColourOf(hex)
   if not value then return nil end
   value = math.pow(2,value)
   return value
+end
+--[[End Theft]]
+
+
+local function getSafeColor(mon, color, noColor)
+  if mon.isColor() then
+    return color
+  else
+    if color == colors.white or color == colors.lightGray or color == colors.gray or color == colors.black then
+      return color
+    end
+    if color == colors.yellow or color == colors.lightBlue or color == colors.pink or color == colors.lime then
+      return colors.white
+    end
+    if color == colors.magenta or color == colors.orange or color == colors.purple or color == colors.red then
+      return colors.lightGray
+    end
+    if color == colors.brown or color == colors.green or color == colors.blue or color == colors.cyan then
+      return colors.gray
+    end
+    return noColor
+  --[[else
+    if color == "c" or color == "5" or color == " " then
+      return colors.black
+    else
+      return colors.white
+    end]]
+  end
 end
 
 local function drawPictureTable(mon, xinit, yinit, width, scanLines, overLines, align, fill, bgcolor, actuallyDraw)
@@ -145,18 +174,10 @@ local function drawPictureTable(mon, xinit, yinit, width, scanLines, overLines, 
       if scanLines[y] then
         local col = getColourOf(bgData)
         if col then
-          if mon.isColor() then
-            mon.setBackgroundColour(col)
-          else
-            if bgData == "c" or bgData == "5" or bgData == " " then
-              mon.setBackgroundColour(colors.white)
-            else
-              mon.setBackgroundColour(colors.black)
-            end
-          end
+          mon.setBackgroundColour(getSafeColor(mon, col, colors.black))
         else
           if bgcolor ~= "" then
-            mon.setBackgroundColour(bgcolor)
+            mon.setBackgroundColour(getSafeColor(mon, bgcolor, colors.white))
           else
             mon.setBackgroundColour(colors.white)
           end
@@ -166,15 +187,7 @@ local function drawPictureTable(mon, xinit, yinit, width, scanLines, overLines, 
       --[[SET FG]]
       local colfg = getColourOf(fgColor)
       if colfg then
-        if mon.isColor() then
-          mon.setTextColour(colfg)
-        else
-          if fgColor == "c" or fgColor == "5" or fgColor == "0" then
-            mon.setTextColour(colors.white)
-          else
-            mon.setTextColour(colors.black)
-          end
-        end
+        mon.setTextColour(getSafeColor(mon, colfg, colors.black))
       end
       
       --[[DRAW]]
@@ -186,7 +199,6 @@ local function drawPictureTable(mon, xinit, yinit, width, scanLines, overLines, 
   return imageHeight
   
 end
---[[End Theft]]
 
 --[[START PROGRAM]]
 
@@ -555,8 +567,8 @@ local function renderDOM(actuallyDraw)
   end
       
   if actuallyDraw then
-    term.setTextColor(defaultColor)
-    term.setBackgroundColor(defaultBGColor)
+    term.setTextColor(getSafeColor(term, defaultColor, colors.black))
+    term.setBackgroundColor(getSafeColor(term, defaultBGColor, colors.white))
     term.clear()
   
     updatePage()
@@ -584,8 +596,8 @@ local function renderDOM(actuallyDraw)
     end
     
     if actuallyDraw then
-      term.setTextColor(setColor)
-      term.setBackgroundColor(setBGColor)
+      term.setTextColor(getSafeColor(term, setColor, colors.gray))
+      term.setBackgroundColor(getSafeColor(term, setBGColor, colors.white))
     end
     
     local currentChildHeight = 0 --to be calculated (and set on the child) below
@@ -671,15 +683,15 @@ local function renderDOM(actuallyDraw)
         end
         term.setTextColor(colors.lightGray)
         writeTextBlock(true, term, 1, currentChildTop, w, string.rep(".", w), "left", true)
-        term.setTextColor(setColor)
+        term.setTextColor(getSafeColor(term, setColor, colors.gray))
         writeTextBlock(true, term, 1, currentChildTop, w, child:value(), "left", false)
         
         if child:getSelected() then
-          term.setBackgroundColor(colors.blue)
+          term.setBackgroundColor(getSafeColor(term, colors.blue, colors.black))
           term.setTextColor(colors.white)
           fill = true
         else
-          term.setTextColor(colors.blue)
+          term.setTextColor(getSafeColor(term, colors.blue, colors.black))
         end
         writeTextBlock(true, term, 1, currentChildTop, w, child["@id"], "right", false)
       end
@@ -888,7 +900,7 @@ local isFirst = true
 
   if debugSide then
     local monitor = peripheral.wrap( debugSide )
-    if monitor then      
+    if monitor ~= nil then
       monitor.setBackgroundColor(colors.black)
       monitor.setTextColor(colors.white)
       monitor.clear()
