@@ -138,27 +138,32 @@ local function drawPictureTable(mon, xinit, yinit, width, scanLines, overLines, 
       if scanLines[y] then bgData = string.sub(scanLines[y], x, x) end
       if overText[y] and overText[y][x] then fgText = overText[y][x] end
       if overColor[y] and overColor[y][x] then fgColor = overColor[y][x] end
-      --[[DRAW BG]]
+      
       mon.setCursorPos(xinit + x-1 + alignOffset, yinit + y-1)
-      local col = getColourOf(bgData)
-      if col then
-        if mon.isColor() then
-          mon.setBackgroundColour(col)
-        else
-          if bgData == "c" or bgData == "5" or bgData == " " then
-            mon.setBackgroundColour(colors.white)
+      
+      --[[SET BG]]
+      if scanLines[y] then
+        local col = getColourOf(bgData)
+        if col then
+          if mon.isColor() then
+            mon.setBackgroundColour(col)
           else
-            mon.setBackgroundColour(colors.black)
+            if bgData == "c" or bgData == "5" or bgData == " " then
+              mon.setBackgroundColour(colors.white)
+            else
+              mon.setBackgroundColour(colors.black)
+            end
           end
-        end
-      else
-        if bgcolor ~= "" then
-          mon.setBackgroundColour(bgcolor)
         else
-          mon.setBackgroundColour(colors.white)
+          if bgcolor ~= "" then
+            mon.setBackgroundColour(bgcolor)
+          else
+            mon.setBackgroundColour(colors.white)
+          end
         end
       end
 
+      --[[SET FG]]
       local colfg = getColourOf(fgColor)
       if colfg then
         if mon.isColor() then
@@ -172,9 +177,9 @@ local function drawPictureTable(mon, xinit, yinit, width, scanLines, overLines, 
         end
       end
       
+      --[[DRAW]]
       mon.write(fgText)
       
-      --[[DRAW FG]]
 		end
 	end
   
@@ -277,7 +282,8 @@ function newNode(name)
   node.___name = name
   node.___children = {}
   node.___props = {}
-  node.___frame = 1
+  node.___frame = nil
+  node.___frameStack = {}
   node.___isSelected = false
   node.___renderTop = nil
   node.___renderHeight = nil
@@ -308,10 +314,78 @@ function newNode(name)
   function node:getRenderHeight() return self.___renderHeight end
   function node:setSelected(isSelected) self.___isSelected = isSelected end
   function node:getSelected() return self.___isSelected end
-  function node:getFrame() return self.___frame end
+  function node:getFrame() 
+    if self.___frame == nil then
+      local childrenCount = self:numChildren()
+      
+      --setup our framestack
+      
+      if self["@mode"] == "linear" then
+        for i=1,childrenCount do 
+          self.___frameStack[i] = i
+        end
+      elseif self["@mode"] == "bounce" then
+        local n = 0
+        if self["@direction"] == "backward" then
+          for i=childrenCount,1,-1 do 
+            n = n + 1
+            self.___frameStack[n] = i
+          end
+          for i=1,childrenCount do 
+            n = n + 1
+            self.___frameStack[n] = i
+          end
+        else
+          for i=1,childrenCount do 
+            n = n + 1
+            self.___frameStack[n] = i
+          end
+          for i=childrenCount,1,-1 do 
+            n = n + 1
+            self.___frameStack[n] = i
+          end
+        end
+      end
+      
+      if self["@direction"] == "backward" then
+        self.___frame = #self.___frameStack
+      else
+        self.___frame = 1
+      end
+      
+    end
+    
+    debugOutput.ff = self.___frame
+    debugOutput.fs = #self.___frameStack
+    debugOutput.fc = self.___frameStack[self.___frame]
+    return self.___frameStack[self.___frame]
+  end
   function node:advanceFrame()
-    local tmpFrame = self:getFrame() + 1 
-    if tmpFrame > self:numChildren() then tmpFrame = 1 end
+    local frameStackCount = #self.___frameStack
+    local loop = self["@loop"] == "true"
+    
+    local tmpFrame = self.___frame
+    
+    if self["@direction"] == "backward" then
+      tmpFrame = tmpFrame - 1 
+      if tmpFrame < 1 then
+        if loop then
+          tmpFrame = frameStackCount
+        else
+          tmpFrame = 1
+        end
+      end
+    else
+      tmpFrame = tmpFrame + 1
+      if tmpFrame > frameStackCount then
+        if loop then
+          tmpFrame = 1
+        else
+          tmpFrame = frameStackCount
+        end
+      end
+    end
+    
     self.___frame = tmpFrame
   end
 
@@ -557,29 +631,28 @@ local function renderDOM(actuallyDraw)
         
                
         if frame:numChildren() > 0 then
+          curImage = nil
+          curOverlay = nil
           if frame.data ~= nil then
             curImage = frame.data:value()
           end
-          
-          
           if frame.overlay ~= nil then
             curOverlay = frame.overlay:value()
           end
-        else
-          curImage = frame:value()
-          curOverlay = ""
         end
       end
       
       local scanLines = {}
       local overLines = {}      
       
-      local lines = string.gsub(curImage, "[\r\n]?", "")
-      if scanLines ~= nil then
+      local lines = ""
+      if curImage then 
+        lines = string.gsub(curImage, "[\r\n]?", "")
         for scanLine in string.gmatch(lines, "[^+]+")   do table.insert(scanLines, scanLine) end
       end
-      local overlay = string.gsub(curOverlay, "[\r\n]?", "")
-      if scanLines ~= nil then
+      local overlay = ""
+      if curOverlay then 
+        overlay = string.gsub(curOverlay, "[\r\n]?", "")
         for overLine in string.gmatch(overlay, "[^+]+")   do table.insert(overLines, overLine) end
       end
 
@@ -806,6 +879,7 @@ local isKeyingCode = false
 local keyCode = ""
 local doKeyingSubmit = false
 
+local updateSpeed = 0.125
 local timer = os.startTimer(0)
 
 local lastUpdateTime = os.clock()
@@ -905,7 +979,7 @@ while running do
     triggerDomRender = true
   end]]
   
-  if currentTime - lastUpdateTime > 0.2 then
+  if currentTime - lastUpdateTime > updateSpeed then
     lastUpdateTime = currentTime
     localFrame = localFrame + 1
     triggerDomRender = true
@@ -951,7 +1025,7 @@ while running do
   end
 
   os.cancelTimer(timer)     -- our heatbeat
-  timer = os.startTimer(.1) --  for animaions
+  timer = os.startTimer(updateSpeed) --  for animaions
   
   if debugSide then
     local monitor = peripheral.wrap( debugSide )
