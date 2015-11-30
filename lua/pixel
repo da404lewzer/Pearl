@@ -1,0 +1,152 @@
+function newPixel(x, y)
+  local node = {}
+  node.___x = x
+  node.___y = y
+  node.___str = " "
+  node.___bgColor = colors.black
+  node.___fgColor = colors.lightGray
+  
+  function node:getBackgroundColor() return self.___bgColor end
+  function node:setBackgroundColor(color) self.___bgColor = color end
+  function node:getTextColor() return self.___fgColor end
+  function node:setTextColor(color) self.___fgColor = color end
+  function node:getText() return self.___str end
+  function node:setText(text)
+    if text == nil then text = " " end
+    self.___str = text
+  end
+  
+  function node:clear(color)
+    self:setBackgroundColor(color)
+    self.___str = " "
+  end
+  
+  return node
+end
+
+function newScreen()
+  local node = {}
+  node.___cursorLoc = {x = 1, y = 1}
+  node.___screenSize = {width = 1, height = 1}
+  node.___pixels = {}
+  node.___curBGColor = colors.black
+  node.___curFGColor = colors.lightGray
+  
+  function node:isColor() return true end
+  
+  function node:setBackgroundColor(color) self.___curBGColor = color end
+  function node:setTextColor(color) self.___curFGColor = color end
+  
+  function node:getCursorPos() return self.___cursorLoc.x, self.___cursorLoc.y end
+  function node:setCursorPos(xVal, yVal) self.___cursorLoc = {x = xVal, y = yVal} end
+  
+  function node:getPixel(x, y)
+    if self.___pixels[y] and self.___pixels[y][x] then
+      return self.___pixels[y][x]
+    end
+    return nil
+  end
+  
+  --we set pixels here yay!
+  function node:write(text)
+    local x,y = self:getCursorPos()
+    for i=1,#text do    
+      local str = string.sub(text,i,i)
+      local pxl = self:getPixel(x+i-1, y)
+      if str and pxl then
+        pxl:setBackgroundColor(self.___curBGColor)
+        pxl:setTextColor(self.___curFGColor)
+        pxl:setText(str)
+      end
+    end
+  end
+  
+  function node:getSize() return self.___screenSize.width, self.___screenSize.height end
+  function node:setSize(xVal, yVal) 
+    local tmpPixels = self.___pixels
+    
+    local newPixels = {}
+    for y=1,yVal do
+      newPixels[y] = {}
+      for x=1,xVal do
+        if tmpPixels[y] ~= nil and tmpPixels[y][x] ~= nil then
+          newPixels[y][x] = tmpPixels[y][x]          
+        else
+          local newPxl = newPixel(x,y)
+          newPxl:clear(self.___curBGColor)
+          newPixels[y][x] = newPxl
+        end
+      end
+    end
+    
+    self.___pixels = newPixels;    
+    self.___screenSize = {width = xVal, height = yVal}    
+  end
+  
+  function node:draw(outputMonitor, xOff, yOff)    
+    if self.___pixels == nil then return end
+    local w,h = outputMonitor.getSize()
+    for y=1,#self.___pixels do
+      for x=1,#self.___pixels[y] do
+        local pixel = self:getPixel(x, y)
+        if pixel and x <= w and y <=h then
+          outputMonitor.setCursorPos(xOff+x-1, yOff+y-1)
+          outputMonitor.setBackgroundColor(pixel:getBackgroundColor())
+          outputMonitor.setTextColor(pixel:getTextColor())
+          outputMonitor.write(pixel:getText())
+        end
+      end
+    end
+  end
+  
+  function node:clear(color)
+    if color == nil then color = self.___curBGColor end
+    self.___curBGColor = color
+    for y=1,#self.___pixels do
+      for x=1,#self.___pixels[y] do
+        self.___pixels[y][x]:clear(color)
+      end
+    end
+  end
+  
+  return node
+end
+
+
+
+--[[
+function newScreenProxy()
+  local node = {}
+  node.___screenObject = screen
+  
+  function node:getOutputScreen() return self.___screenObject end
+  function node:setOutputScreen(screen)
+    self.___screenObject = screen
+    node:setSize(screen.getSize())
+  end
+  
+  return node
+end
+term.clear()
+
+local t = newScreen()
+local w,h = term.getSize()
+t:setSize(w, h-1)
+
+while true do
+
+  t:clear(colors.blue)
+  t:setCursorPos(1,1)
+  t:setBackgroundColor(colors.cyan)
+  t:setTextColor(colors.yellow)
+  t:write("Hello World")
+  t:draw(term, 1, 1)
+  os.sleep(0.01)
+  
+end
+
+term.setCursorPos(1, 19)
+
+--local w,h = t:getSize()
+--term.write(string.format("%s %s", w,h))
+]]

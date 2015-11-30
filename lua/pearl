@@ -17,29 +17,34 @@
 
 --[[LOCAL VARS]]
 
+os.loadAPI("pixel")
+
+local screen = pixel.newScreen()
+screen:setSize(term.getSize())
+
 local debugOutput = {} --outputs to an side monitor
 local debugSide = "right"
 
 local running = true
-local w,h = term.getSize()
+local w,h = screen:getSize()
 
 local versionStr="1.2-beta"
 local colorStr = "NoColor"
-if term.isColor() then
+if screen:isColor() then
   colorStr = "Color16"
 end
-local userAgent=string.format("EnderWeb/1.0 (Minecraft; ComputerCraft; Forge;) %s (%s; R:%dx%d) Pearl/%s", string.gsub(os.version(), " ", "/"), colorStr, w,h, versionStr)
+local userAgent=string.format("EnderWeb/1.0 (Minecraft; ComputerCraft; Forge; Pixel) %s (%s; R:%dx%d) Pearl/%s", string.gsub(os.version(), " ", "/"), colorStr, w,h, versionStr)
 
 --[[LOCAL DEPENDENCIES]]
 
 local function setColors(monitor, bg, fg, bg2, fg2)
    if monitor then
-    if monitor.isColor() then
-      monitor.setBackgroundColor(bg)
-      monitor.setTextColor(fg)
+    if monitor:isColor() then
+      monitor:setBackgroundColor(bg)
+      monitor:setTextColor(fg)
     else
-      monitor.setBackgroundColor(bg2)
-      monitor.setTextColor(fg2)
+      monitor:setBackgroundColor(bg2)
+      monitor:setTextColor(fg2)
     end
   end
 end
@@ -66,7 +71,7 @@ local function drawScreen(monitor)
 end
 
 --[[Stolen Shamelessly from nPaintPro - http://pastebin.com/4QmTuJGU]]
-local function getColourOf(hex)
+local function getColorOf(hex)
   local value = tonumber(hex, 16)
   if not value then return nil end
   value = math.pow(2,value)
@@ -160,9 +165,9 @@ local function drawPictureTable(mon, xinit, yinit, width, scanLines, overLines, 
   for y=1,imageHeight do
     
     if fill then
-      mon.setBackgroundColour(bgcolor)
-      mon.setCursorPos(1, yinit + y-1)
-      mon.write(string.rep(" ", w))
+      mon:setBackgroundColor(bgcolor)
+      mon:setCursorPos(1, yinit + y-1)
+      mon:write(string.rep(" ", w))
     end
     for x=1,imageWidth do
       local bgData = " "
@@ -172,30 +177,30 @@ local function drawPictureTable(mon, xinit, yinit, width, scanLines, overLines, 
       if overText[y] and overText[y][x] then fgText = overText[y][x] end
       if overColor[y] and overColor[y][x] then fgColor = overColor[y][x] end
       
-      mon.setCursorPos(xinit + x-1 + alignOffset, yinit + y-1)
+      mon:setCursorPos(xinit + x-1 + alignOffset, yinit + y-1)
       
       --[[SET BG]]
       if scanLines[y] then
-        local col = getColourOf(bgData)
+        local col = getColorOf(bgData)
         if col then
-          mon.setBackgroundColour(getSafeColor(mon, col, colors.black))
+          mon:setBackgroundColor(getSafeColor(mon, col, colors.black))
         else
           if bgcolor ~= "" then
-            mon.setBackgroundColour(getSafeColor(mon, bgcolor, colors.white))
+            mon:setBackgroundColor(getSafeColor(mon, bgcolor, colors.white))
           else
-            mon.setBackgroundColour(colors.white)
+            mon:setBackgroundColor(colors.white)
           end
         end
       end
 
       --[[SET FG]]
-      local colfg = getColourOf(fgColor)
+      local colfg = getColorOf(fgColor)
       if colfg then
-        mon.setTextColour(getSafeColor(mon, colfg, colors.black))
+        mon:setTextColor(getSafeColor(mon, colfg, colors.black))
       end
       
       --[[DRAW]]
-      mon.write(fgText)
+      mon:write(fgText)
       
 		end
 	end
@@ -219,8 +224,8 @@ local linkScrollAmount = 1
 
 
 local function writeTextRAW(monitor, x, y, text)
-  monitor.setCursorPos(x, y)
-  monitor.write(text)
+  monitor:setCursorPos(x, y)
+  monitor:write(text)
 end
 
 local function writeTextBlock(actuallyDraw, monitor, x, y, width, text, align, fill)
@@ -496,23 +501,23 @@ local function parseTree(xmlText)
 end
 
 local function updateTitle()
-  setColors(term, colors.lightGray, colors.gray, colors.white, colors.black)
-  --writeTextRAW(term, 1, 1, string.rep(" ", w), "left")
-  writeTextBlock(true, term, 1, 1, w, "@ " .. currentPageID, "left", true)
-  --writeRightText(term, 1, 1, "0 bytes")
+  setColors(screen, colors.lightGray, colors.gray, colors.white, colors.black)
+  --writeTextRAW(screen, 1, 1, string.rep(" ", w), "left")
+  writeTextBlock(true, screen, 1, 1, w, "@ " .. currentPageID, "left", true)
+  --writeRightText(screen, 1, 1, "0 bytes")
 end
 
 local function updateTitleKeying(keyCode)
-  setColors(term, colors.lightGray, colors.gray, colors.white, colors.black)
-  writeTextBlock(true, term, 1, 1, w, "@ " .. string.rep("-", 6), "left", false)
-  setColors(term, colors.lightGray, colors.black, colors.white, colors.black)
-  writeTextBlock(true, term, 1, 1, w, "@", "left", false)
-  writeTextBlock(true, term, 9 - #keyCode, 1, w, keyCode, "left", false)
+  setColors(screen, colors.lightGray, colors.gray, colors.white, colors.black)
+  writeTextBlock(true, screen, 1, 1, w, "@ " .. string.rep("-", 6), "left", false)
+  setColors(screen, colors.lightGray, colors.black, colors.white, colors.black)
+  writeTextBlock(true, screen, 1, 1, w, "@", "left", false)
+  writeTextBlock(true, screen, 9 - #keyCode, 1, w, keyCode, "left", false)
 end
 
 local function updatePage()
   updateTitle()
-  setColors(term, colors.white, colors.black, colors.white, colors.black)
+  setColors(screen, colors.white, colors.black, colors.white, colors.black)
 end
 
 local function getColor(color, default)
@@ -571,9 +576,9 @@ local function renderDOM(actuallyDraw)
   end
       
   if actuallyDraw then
-    term.setTextColor(getSafeColor(term, defaultColor, colors.black))
-    term.setBackgroundColor(getSafeColor(term, defaultBGColor, colors.white))
-    term.clear()
+    screen:setTextColor(getSafeColor(screen, defaultColor, colors.black))
+    screen:setBackgroundColor(getSafeColor(screen, defaultBGColor, colors.white))
+    screen:clear()
   
     updatePage()
   end
@@ -600,8 +605,8 @@ local function renderDOM(actuallyDraw)
     end
     
     if actuallyDraw then
-      term.setTextColor(getSafeColor(term, setColor, colors.gray))
-      term.setBackgroundColor(getSafeColor(term, setBGColor, colors.white))
+      screen:setTextColor(getSafeColor(screen, setColor, colors.gray))
+      screen:setBackgroundColor(getSafeColor(screen, setBGColor, colors.white))
     end
     
     local currentChildHeight = 0 --to be calculated (and set on the child) below
@@ -615,11 +620,11 @@ local function renderDOM(actuallyDraw)
       end
       
       if editMode and child:getSelected() then
-        term.setBackgroundColor(selectionColor)
-        term.setTextColor(colors.white)
+        screen:setBackgroundColor(selectionColor)
+        screen:setTextColor(colors.white)
         fill = true
       end
-      currentChildHeight = writeTextBlock(actuallyDraw, term, 1, currentChildTop, w, child:value(), align, fill)
+      currentChildHeight = writeTextBlock(actuallyDraw, screen, 1, currentChildTop, w, child:value(), align, fill)
     
     elseif child:name() == "drawing" then  
       
@@ -678,35 +683,35 @@ local function renderDOM(actuallyDraw)
         fill = true
       end
       
-      currentChildHeight = drawPictureTable(term, 1, currentChildTop, w, scanLines, overLines, align, fill, setBGColor, actuallyDraw);
+      currentChildHeight = drawPictureTable(screen, 1, currentChildTop, w, scanLines, overLines, align, fill, setBGColor, actuallyDraw);
     
     elseif child:name() == "listing" then
       if actuallyDraw then
         if editMode and child:getSelected() then
-          term.setBackgroundColor(selectionColor)
+          screen:setBackgroundColor(selectionColor)
         end
-        term.setTextColor(colors.lightGray)
-        writeTextBlock(true, term, 1, currentChildTop, w, string.rep(".", w), "left", true)
-        term.setTextColor(getSafeColor(term, setColor, colors.gray))
-        writeTextBlock(true, term, 1, currentChildTop, w, child:value(), "left", false)
+        screen:setTextColor(colors.lightGray)
+        writeTextBlock(true, screen, 1, currentChildTop, w, string.rep(".", w), "left", true)
+        screen:setTextColor(getSafeColor(screen, setColor, colors.gray))
+        writeTextBlock(true, screen, 1, currentChildTop, w, child:value(), "left", false)
         
         if child:getSelected() then
-          term.setBackgroundColor(getSafeColor(term, colors.blue, colors.black))
-          term.setTextColor(colors.white)
+          screen:setBackgroundColor(getSafeColor(screen, colors.blue, colors.black))
+          screen:setTextColor(colors.white)
           fill = true
         else
-          term.setTextColor(getSafeColor(term, colors.blue, colors.black))
+          screen:setTextColor(getSafeColor(screen, colors.blue, colors.black))
         end
-        writeTextBlock(true, term, 1, currentChildTop, w, child["@id"], "right", false)
+        writeTextBlock(true, screen, 1, currentChildTop, w, child["@id"], "right", false)
       end
       currentChildHeight = 1
       
     else
       if editMode and actuallyDraw and child:getSelected() then
-        term.setBackgroundColor(selectionColor)
-        term.setTextColor(colors.white)
+        screen:setBackgroundColor(selectionColor)
+        screen:setTextColor(colors.white)
         fill = true
-        writeTextBlock(true, term, 1, currentChildTop, w, " ", "left", true)
+        writeTextBlock(true, screen, 1, currentChildTop, w, " ", "left", true)
       end
       currentChildHeight = 1
     end
@@ -764,10 +769,10 @@ end
 --saveSettings()
 
 function updateAllTheThings()
-    term.setTextColor(colors.green)
-    term.setBackgroundColor(colors.black)
-    term.clear()
-    term.setCursorPos(1,1)
+    screen:setTextColor(colors.green)
+    screen:setBackgroundColor(colors.black)
+    screen:clear()
+    screen:setCursorPos(1,1)
     shell.run("market get gjdi84 pearl y")
     currentPageID = '001300'
     loadPage('001300')
@@ -1017,8 +1022,8 @@ while running do
     end
   else
     if doKeyingSubmit and currentlySelected and currentlySelected:name() == "listing" then
-      term.setTextColor(colors.black)
-      term.setCursorPos(1,1)
+      screen:setTextColor(colors.black)
+      screen:setCursorPos(1,1)
       --print(currentlySelected["@id"])
       local tmpPageID = string.gmatch(currentlySelected["@id"], "%d+")()
       if tmpPageID ~= nil and tonumber(tmpPageID) >= 0 and tonumber(tmpPageID) < 1000000 then
@@ -1040,12 +1045,16 @@ while running do
     updateTitleKeying(keyCode)
   end
 
+  
   os.cancelTimer(timer)     -- our heatbeat
   timer = os.startTimer(updateSpeed) --  for animaions
   
   if debugSide then
     local monitor = peripheral.wrap( debugSide )
     if monitor then      
+      monitor.setTextScale(0.5)
+      screen:draw(term, 1, 1)
+      --[[
       monitor.setBackgroundColor(colors.black)
       monitor.setTextColor(colors.white)
       monitor.clear()
@@ -1058,12 +1067,14 @@ while running do
         monitor.setCursorPos(1,y)
         monitor.write( string.format("%s: %s", k,v) )
       end
+      ]]
     end
   end
   
 end
 
 --saveSettings()
-setColors(term, colors.black, colors.white, colors.black, colors.white)
+term.setBackgroundColor(colors.black)
+term.setTextColor(colors.white)
 term.clear()
 term.setCursorPos(1,1)
